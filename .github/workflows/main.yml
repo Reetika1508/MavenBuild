@@ -3,7 +3,7 @@ name: Build and Deploy via Jenkins
 on:
   push:
     branches:
-      - main  # or your deployment branch
+      - master  # or your deployment branch
 
 jobs:
   build:

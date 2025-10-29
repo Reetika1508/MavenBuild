@@ -1,0 +1,87 @@
+pipeline {
+  agent any
+
+  parameters {
+    string(name: 'WAR_FILE_NAME', defaultValue: 'sample.war', description: 'Name of the WAR file to deploy')
+  }
+
+  environment {
+    TOMCAT_URL = 'http://13.221.130.80:8080'
+    GITHUB_TOKEN = credentials('674b8181-4f3e-4b06-80d4-c119a501a8cd')          // Jenkins secret for GitHub token
+    GITHUB_OWNER = 'Reetika1508'                  // GitHub org/user name
+    GITHUB_REPO  = 'MavenBuild'                     // GitHub repo name
+  }
+
+  stages {
+    stage('Fetch WAR') {
+      steps {
+        echo "Fetching ${params.WAR_FILE_NAME} from GitHub Actions artifact storage"
+
+        script {
+          def artifactName = 'app-war'  // Adjust to your actual artifact name
+
+          // 1. Get artifact ID
+          def artifactIdJson = sh(
+            script: """
+              curl -s -H "Authorization: Bearer ${env.GITHUB_TOKEN}" \\
+                   -H "Accept: application/vnd.github+json" \\
+                   "https://api.github.com/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/artifacts"
+            """,
+            returnStdout: true
+          )
+
+          def artifactId = sh(
+            script: """
+              echo '${artifactIdJson}' | jq -r '.artifacts[] | select(.name=="${artifactName}") | .id' | head -n1
+            """,
+            returnStdout: true
+          ).trim()
+
+          if (!artifactId) {
+            error("Artifact '${artifactName}' not found in GitHub Actions")
+          }
+
+          echo "Artifact ID: ${artifactId}"
+
+          // 2. Download artifact ZIP
+          sh """
+            curl -L -H "Authorization: Bearer ${env.GITHUB_TOKEN}" \\
+                 -H "Accept: application/vnd.github+json" \\
+                 "https://api.github.com/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/artifacts/${artifactId}/zip" \\
+                 -o artifact.zip
+          """
+
+          // 3. Unzip WAR from artifact.zip
+          sh 'unzip -o artifact.zip'
+
+          // 4. Verify WAR file presence
+          sh "ls -lh ${params.WAR_FILE_NAME}"
+        }
+      }
+    }
+
+    stage('Deploy to Tomcat') {
+      steps {
+        echo "Deploying ${params.WAR_FILE_NAME} to Tomcat..."
+        deploy adapters: [
+          tomcat9(
+            credentialsId: 'tomcat-credentials',
+            path: '',
+            url: "${TOMCAT_URL}"
+          )
+        ],
+        contextPath: '/Java-example',
+        war: "${params.WAR_FILE_NAME}"
+      }
+    }
+  }
+
+  post {
+    success {
+      echo "✅ Deployment of ${params.WAR_FILE_NAME} completed successfully!"
+    }
+    failure {
+      echo "❌ Deployment failed."
+    }
+  }
+}

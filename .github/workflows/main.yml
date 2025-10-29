@@ -45,5 +45,5 @@ jobs:
         run: |
           echo "Triggering Jenkins deployment..."
           curl -X POST \
-            -u "${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_API_TOKEN }}" \
+            -u "${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_TOKEN }}" \
             "${{ secrets.JENKINS_URL }}/job/deploy-to-tomcat/buildWithParameters?token=GITHUB_TRIGGER&WAR_FILE_NAME=$(basename ./build/*.war)"

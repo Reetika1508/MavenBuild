@@ -8,6 +8,7 @@ on:
 
 jobs:
   build:
+    name: Build WAR with Maven
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

@@ -21,13 +21,3 @@ jobs:
 
       - name: Build with Maven
         run: mvn clean install
-
-      - name: Trigger Jenkins Job
-        env:
-          JENKINS_URL: ${{ secrets.JENKINS_URL }}
-          JENKINS_USER: ${{ secrets.JENKINS_USER }}
-          JENKINS_TOKEN: ${{ secrets.JENKINS_TOKEN }}
-        run: |
-          curl -X POST "${JENKINS_URL}/job/your-job-name/buildWithParameters" \
-            --user "${JENKINS_USER}:${JENKINS_TOKEN}" \
-            --data-urlencode json='{"parameter": [{"name":"param1", "value":"value1"}]}'
